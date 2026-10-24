@@ -1,0 +1,9 @@
+dist/
+
+# Per-machine tool settings (see config.example.json next to each tool).
+config.json
+
+# OS cruft
+.DS_Store
+Thumbs.db
+desktop.ini

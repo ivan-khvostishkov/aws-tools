@@ -1,0 +1,65 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check shell scripts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck
+          shellcheck --severity=warning \
+            scripts/build.sh \
+            tools/open-aws-console/open-aws-console.sh \
+            tools/open-aws-console/open-aws-console.command \
+            tools/update-route53/update-route53.sh
+
+      - name: Check PowerShell scripts parse
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem -Path tools -Filter *.ps1 -Recurse | ForEach-Object {
+              $errors = $null
+              [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errors) | Out-Null
+              if ($errors) {
+                  $failed = $true
+                  Write-Host "::error file=$($_.FullName)::$($errors -join '; ')"
+              }
+              else {
+                  Write-Host "OK  $($_.FullName)"
+              }
+          }
+          if ($failed) { exit 1 }
+
+  build:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so build.sh can derive a version from tags.
+          fetch-depth: 0
+
+      - name: Assemble dist/
+        run: ./scripts/build.sh
+
+      - name: Upload dist as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          # GitHub serves the artifact as aws-tools.zip.
+          name: aws-tools
+          path: dist/aws-tools
+          if-no-files-found: error
+          retention-days: 90

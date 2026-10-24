@@ -1,0 +1,12 @@
+# Normalise in the repo, check out with the line endings each platform needs.
+* text=auto eol=lf
+
+# Windows interpreters are happiest with CRLF; cmd.exe in particular can
+# mis-parse LF-only batch files.
+*.cmd  text eol=crlf
+*.bat  text eol=crlf
+*.ps1  text eol=crlf
+
+# Shell scripts must stay LF, even when checked out on Windows.
+*.sh      text eol=lf
+*.command text eol=lf
